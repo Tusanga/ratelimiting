@@ -1,0 +1,17 @@
+name         "ratelimiting"
+description  "A ratelimiting library"
+authors      "Adam Williams"
+copyright    "Copyright © 2025, Adam Williams"
+license      "MIT"
+
+targetType   "library"
+sourcePaths  "source/"
+targetPath   "lib"
+
+//buildRequirements     "disallowDeprecations"
+//buildRequirements     "silenceDeprecations"
+
+//buildOptions          "warningsAsErrors" "optimize" "inline"
+
+
+
