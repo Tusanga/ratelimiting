@@ -2,84 +2,107 @@
 Rate limiting library in dlang language
 
 ## Features
-  - Single leaky bucket rate limiter
+  - Single bucket rate limiter.
 
-  - Map of leaky bucket rate limiters all with same limits using string as key
+  - Map of bucket rate limiters all with same limits using string as key.
 
-  - Sketch of leaky bucket rate limiters all with same limits using string as key and with a constant memory footprint
+  - Sketch of bucket rate limiters all with same limits using string as key and with a constant memory footprint.
 
-  - Check for one or more counts/units at a time
+  - With sketch being probabilistic there is a risk of false positives, i.e. getting flagged as 'over limit' when this is not the case.
+
+  - Supports check for one or more units at a time.
+  
+  - Limits are defined as 'units' per 'seconds'. Example: 10 units per 60 seconds.
+  
+  - Bursts up to 'units' are allowed. 10 units per 60 seconds and 20 units per 120 seconds will have the same average rate but diffent burst sizes of respectively 10 and 20.
 
 ## Be-aware
-  - The library is as of now considered too immature to be used in production
+  - The library is as of now considered too immature to be used in production.
 
-  - RateLimiterLeakyBucketMap code can/should be optimized
+  - The library does not support partial checks, i.e. when a part (e.g. 2) units out of all (e.g. 5) units should be allowed.
 
-  - RateLimiterLeakyBucketSketch hash functions are for now simply bit slices of same sha224 value
+  - RateLimiterBucketSketch can not be resized.
+
+  - Guidelines for choosing row count and column count in RateLimiterBucketSketch are not included. Please refer to calculations for bloom filters and count-min sketches for this.
 
 ------------
 ### Single rate limiter
   Usage:
 
-      RateLimiterLeakyBucket myRateLimiter;
+      RateLimiterBucket myRateLimiter;
 
       // Syntax: init(count, duration)
-      // Allow 2 per 10 seconds
+      // Allow 2 units per 10 seconds
       myRateLimiter.init(2,10);
 
       // Syntax: check(timestamp, count)
       bool r = myRateLimiter.check(now(), 1);
       // check call returns true if allowed
 
-      // Alternatively use DateTime or SysTime timestamp
+      // Default count is one (1)
+      r = myRateLimiter.check(now());
+
+      // Alternatively use DateTime ...
       r = myRateLimiter.check(DateTime(2020, 1, 1, 0, 0, 0), 1);
+
+      // ... or SysTime timestamp
+      r = myRateLimiter.check(Clock.currTime(), 1);
 
 ------------
 ### Rate limiter map
   Usage:
 
-      RateLimiterLeakyBucketMap myRateLimiter;
+      RateLimiterBucketMap myRateLimiterMap;
 
       // Syntax: init(count, duration)
-      // Allow 2 per 10 seconds
-      myRateLimiter.init(2,10);
+      // Allow 2 units per 10 seconds
+      myRateLimiterMap.init(2,10);
 
       // Syntax: check(key, timestamp, count)
       // Here using static "abc" string as key
       // Common choices for keys are IP addresses and usernames
-      bool r = myRateLimiter.check("abc", now(), 1);
+      bool r = myRateLimiterMap.check("abc", now(), 1);
       // check call returns true if allowed
 
-      // Alternatively use DateTime or SysTime timestamp
-      r = myRateLimiter.check(DateTime(2020, 1, 1, 0, 0, 0), 1);
+      // Default count is one (1)
+      r = myRateLimiterMap.check("abc", now());
+
+      // Alternatively use DateTime ...
+      r = myRateLimiterMap.check("abc", DateTime(2020, 1, 1, 0, 0, 0), 1);
+
+      // ... or SysTime timestamp
+      r = myRateLimiter.check("abc", Clock.currTime(), 1);
 
       // Optionally perform garbage collection if needed
       // Be aware of run time, which may be too long for some applications
       // Syntax: performGarbageCollection(timestamp)
-      myRateLimiter.performGarbageCollection(now());
+      myRateLimiterMap.performGarbageCollection(now());
 
   In order to remove seldom used entries the following approached is used:
-  When an existing leaky bucket is empty (i.e. no action for a some time) and a check is performed with a count of exactly 1, the bucket is deleted.
+  When an existing bucket is empty (i.e. no action for a some time) and a check is performed with a count of exactly 1, the bucket is deleted.
 
 ------------
 ### Rate limiter sketch
-  Internal workings are somewhat similar to count-min sketch
-
   Usage:
 
-      RateLimiterLeakyBucketSketch myRateLimiter;
+      RateLimiterBucketSketch myRateLimiterSketch;
 
       // Syntax: init(count, duration, rows, columns)
-      // Allow 2 per 10 seconds
+      // Allow 2 units per 10 seconds
       // Use sketch with 2 rows (i.e. 3 hash functions) and 5 columns (i.e. use computed hash values modulus 5)
-      myRateLimiter.init(2, 10, 3, 5);
+      myRateLimiterSketch.init(2, 10, 3, 5);
 
       // Syntax: check(key, timestamp, count)
       // Here using static "abc" string as key
       // Common choices for keys are IP addresses and usernames
-      r = myRateLimiter.check("abc", now(), 1);
+      bool r = myRateLimiterSketch.check("abc", now(), 1);
       // check call returns true if allowed
 
-      // Alternatively use DateTime or SysTime timestamp
-      r = myRateLimiter.check(DateTime(2020, 1, 1, 0, 0, 0), 1);
+      // Default count is one (1)
+      r = myRateLimiterSketch.check("abc", now());
 
+      // Alternatively use DateTime ...
+      r = myRateLimiterSketch.check("abc", DateTime(2020, 1, 1, 0, 0, 0), 1);
+
+      // ... or SysTime timestamp
+      r = myRateLimiterSketch.check("abc", Clock.currTime(), 1);

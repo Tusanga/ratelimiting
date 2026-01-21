@@ -1,7 +1,7 @@
 name         "ratelimiting"
-description  "A ratelimiting library"
+description  "A ratelimiting library in dlang"
 authors      "Adam Williams"
-copyright    "Copyright © 2025, Adam Williams"
+copyright    "Copyright © 2025-2026, Adam Williams"
 license      "MIT"
 
 targetType   "library"
@@ -12,6 +12,3 @@ targetPath   "lib"
 //buildRequirements     "silenceDeprecations"
 
 //buildOptions          "warningsAsErrors" "optimize" "inline"
-
-
-
